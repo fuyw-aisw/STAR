@@ -1,0 +1,22 @@
+INFERENCE:
+  METHOD: "Tuning"
+  THRESHOLD_TYPE: "adaptive"
+  THRESHOLD: 60  
+  LAM: 0.001
+  ALPHA: 0.9
+  IS_CONF: True
+  Q: 0.05 
+  K: 5
+  ENTROPY_QUEUE_LENGTH: 128
+  TAU_SELECTION_TYPE: "adaptive"
+  META_RATIO: 0.2
+  MAX_SIZE_PER_CLUSTER: 64
+
+  
+  OPTIM:
+      NAME: "SGD"
+      LR: 0.0001
+      WEIGHT_DECAY: 0
+      LR_SCHEDULER: "cosine"
+      MOMENTUM: 0.9
+      
