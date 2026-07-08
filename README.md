@@ -15,6 +15,7 @@ We use ImageNet-1K as the ID dataset, and iNaturalist, SUN, Texture, and Places 
 ## Quick Start
 e.g., 1-shot based on LoCoop and SCT
 ```
+## change the corresponding data path
 bash run.sh
 ```
 
