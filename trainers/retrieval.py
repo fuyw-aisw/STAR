@@ -4,56 +4,7 @@ import numpy as np
 from sklearn.cluster import KMeans
 from collections import deque
 
-# conjugate cross-Entropy loss with uncertainty estimated by KL divergence
-
-def CEULoss(logits, k, tau, lam=0.1, reduction="mean"): # k
-    bs, C = logits.shape
-    #print(logits, temp)
-    p = F.softmax(logits, dim=-1)
-    log_p = torch.log(p + 1e-12) # log_p: (bs, C)
-    #print(log_p.shape)
-    H = -(p * log_p).sum(dim=-1, keepdim=True) # entropy: (bs, 1)
-    #print(H)            
-    #breakpoint()
-    #print(H.shape)
-    phi_k = torch.sigmoid(torch.clamp(k * (tau - H), min=-30, max=30)) # phi_k: (bs, 1)
-    #print(phi_k)
-    phi_k = torch.clamp(phi_k, 1e-6, 1-1e-6)
-    diag_p = torch.diag_embed(p) # (bs, C, C)
-    outer_pp = torch.einsum('bi,bj->bij', p, p) # pp^T: (bs, C, C)
-
-    I = torch.eye(p.size(1), device=p.device).unsqueeze(0).expand(bs, -1, -1) #I: identity matrix, (bs, C, C) 
-    outer_onep = torch.einsum('bi,bj->bij', torch.ones_like(p), p) # 1p^T: (bs, C, C) 
-    #print(outer_onep.shape, diag_p.shape)
-    term1 = (k * phi_k * (1 - phi_k)).unsqueeze(2) * (diag_p - outer_pp) @ (log_p + 1).unsqueeze(2) @ log_p.unsqueeze(1)
-    term2 = phi_k.unsqueeze(2) * (I - outer_onep)
-    M = term1 + term2 + 1e-6 * I# (bs, C, C)
-
-    rhs = lam * ((1 - k * phi_k * (torch.log(torch.tensor(C, device=p.device)) - H)).unsqueeze(2) * 
-       (1 - phi_k).unsqueeze(2) * (diag_p - outer_pp) @ (log_p + 1).unsqueeze(2)).squeeze(2)
-
-    rhs = rhs.to(M.device, dtype=M.dtype)
-
-    rhs_proj = rhs - (rhs * p).sum(dim=1, keepdim=True) * p 
-    with torch.no_grad():
-        try:
-            pse_label = torch.linalg.solve(M, rhs_proj.unsqueeze(2)).squeeze(2)
-        except RuntimeError: 
-            pse_label = torch.linalg.lstsq(M, rhs_proj.unsqueeze(2)).solution.squeeze(2)
-    
-    #pse_label = pse_label - (p * pse_label).sum(dim=1, keepdim=True) * p
-
-    pse_label = torch.clamp(pse_label, 0, 1)
-    #pse_label = pse_label / (pse_label.sum(dim=1, keepdim=True) + 1e-12)
-    loss = -phi_k * torch.sum(log_p * pse_label, dim=-1) + (1 - phi_k) * (torch.log(torch.tensor(C, device=p.device)) - H)
-
-    if reduction == 'mean':
-        return loss.mean()
-    elif reduction == 'sum': 
-        return loss.sum()
-    else:
-        return loss
-
+### softmax
 
 def softmax_entropy(x: torch.Tensor) -> torch.Tensor:
     """Entropy of softmax distribution from logits."""
